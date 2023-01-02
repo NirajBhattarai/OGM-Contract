@@ -15,9 +15,14 @@ contract OGM is ERC721Enumerable, Ownable {
     uint256 public MAX_TOKENS = 10000;
 
     // Current price.
-    uint256 public CURRENT_PRICE = 80000000000000000;
+    uint256 public CURRENT_PRICE = 0.08 ether;
 
     constructor() ERC721("OGM", "OGM") {}
+
+    /**
+     * @dev Emitted when `owner` withdraw funds.
+     */
+    event WithDraw(address owner, uint256 indexed amount);
 
     function setMaxTokens(uint256 maxTokens) external onlyOwner {
         MAX_TOKENS = maxTokens;
@@ -73,5 +78,6 @@ contract OGM is ERC721Enumerable, Ownable {
     function withdraw() public onlyOwner {
         uint256 balance = address(this).balance;
         payable(msg.sender).transfer(balance);
+        emit WithDraw(msg.sender, balance);
     }
 }

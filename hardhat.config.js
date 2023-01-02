@@ -1,4 +1,5 @@
-require("@nomicfoundation/hardhat-toolbox");
+require("@nomiclabs/hardhat-waffle");
+require("@nomiclabs/hardhat-ganache");
 require("@nomiclabs/hardhat-etherscan");
 require("dotenv").config();
 
@@ -20,6 +21,11 @@ module.exports = {
       chainId: 80001,
       live: true,
       saveDeployments: true
+    },
+
+    SKALE: {
+      url: process.env.RPC_URL,
+      accounts: [process.env.mnemonic] /// Should Not Contain 0x at the start
     }
   },
   paths: {
@@ -28,6 +34,16 @@ module.exports = {
     artifacts: "./artifacts"
   },
   etherscan: {
-    apiKey: process.env.etherscankey
+    apiKey: process.env.etherscankey,
+    customChains: [
+      {
+        network: "SKALE",
+        chainId: Number(process.env.CHAIN_ID),
+        urls: {
+          apiURL: process.env.API_URL,
+          browserURL: process.env.BROWSER_URL
+        }
+      }
+    ]
   }
 };

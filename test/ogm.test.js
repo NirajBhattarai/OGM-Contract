@@ -35,17 +35,6 @@ describe("OGM", async () => {
       sortPairs: true
     });
   });
-  describe("Set MaxPurchase", () => {
-    it("Set MaxPurchase for a user can buy at a time", async () => {
-      await deployedOGM.setMaxPurchase(10);
-      expect(await deployedOGM.publicSaleMaxPurchase()).to.equal(10);
-    });
-    it("Reverts Transaction if Non Owner Tries to change MaxPurchase", async () => {
-      await expect(
-        deployedOGM.connect(addr1).setMaxPurchase(10)
-      ).to.be.revertedWith("Ownable: caller is not the owner");
-    });
-  });
 
   describe("Change Max Supply", () => {
     it("Set MaxPurchase for a user can buy at a time", async () => {
@@ -58,8 +47,19 @@ describe("OGM", async () => {
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
+  describe("Set MaxPurchase", () => {
+    it("Set MaxPurchase for a user can buy at a time", async () => {
+      await deployedOGM.setMaxPurchase(10);
+      expect(await deployedOGM.publicSaleMaxPurchase()).to.equal(10);
+    });
+    it("Reverts Transaction if Non Owner Tries to change MaxPurchase", async () => {
+      await expect(
+        deployedOGM.connect(addr1).setMaxPurchase(10)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
 
-  describe("ChangeMaxPrivateSale", () => {
+  describe("Change Max PrivateSale", () => {
     it("Should Change Max PrivateSale", async () => {
       await deployedOGM.changeMaxPrivateSale(10);
       expect(await deployedOGM.privateSaleMaxPurchase()).to.equal(10);
@@ -67,6 +67,30 @@ describe("OGM", async () => {
     it("Reverts Transaction if Non Owner Tries to change MaxSupply", async () => {
       await expect(
         deployedOGM.connect(addr1).changeMaxPrivateSale(10)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("Change Public Sale Status", () => {
+    it("Should Change Public Sale Status", async () => {
+      await deployedOGM.changePublicSaleStatus(true);
+      expect(await deployedOGM.isPublicSaleActive()).to.equal(true);
+    });
+    it("Reverts Transaction if Non Owner Tries to change Sale Status", async () => {
+      await expect(
+        deployedOGM.connect(addr1).changePublicSaleStatus(true)
+      ).to.be.revertedWith("Ownable: caller is not the owner");
+    });
+  });
+
+  describe("Change Private Sale Status", () => {
+    it("Should Change Private Sale Status", async () => {
+      await deployedOGM.changePrivateSaleStatus(true);
+      expect(await deployedOGM.isPrivateSaleActive()).to.equal(true);
+    });
+    it("Reverts Transaction if Non Owner Tries to change Sale Status", async () => {
+      await expect(
+        deployedOGM.connect(addr1).changePrivateSaleStatus(true)
       ).to.be.revertedWith("Ownable: caller is not the owner");
     });
   });
@@ -232,7 +256,13 @@ describe("OGM", async () => {
 
       await expect(deployedOGM.privateMint(firstToken.address, 5, proof))
         .to.be.emit(deployedOGM, "Minted")
-        .withArgs(owner.address, 5);
+        .withArgs(owner.address, firstToken.address, 5);
+      const [fetchedPrivateSalePrice] = await deployedOGM.allowedTokens(
+        firstToken.address
+      );
+      expect(await firstToken.balanceOf(deployedOGM.address)).to.be.equal(
+        fetchedPrivateSalePrice.mul(5)
+      );
       expect(await deployedOGM.balanceOf(owner.address)).to.be.equal(5);
       expect(await deployedOGM.mintedOnPrivateSale(owner.address)).to.be.equal(
         5
@@ -240,10 +270,12 @@ describe("OGM", async () => {
     });
 
     it("Allow User To Mint With Multiple Token", async () => {
+      const privateSalePriceWithSecondToken = "100000000000000";
+      const publicSalePriceWithSecondToken = "100000000000000";
       await setTokenPrice(privateSalePrice, publicSalePrice);
       await setTokenPrice(
-        privateSalePrice,
-        publicSalePrice,
+        privateSalePriceWithSecondToken,
+        publicSalePriceWithSecondToken,
         secondToken.address
       );
       let proof = merkleTree.getHexProof(keccak256(owner.address));
@@ -261,15 +293,27 @@ describe("OGM", async () => {
 
       await expect(deployedOGM.privateMint(firstToken.address, 2, proof))
         .to.be.emit(deployedOGM, "Minted")
-        .withArgs(owner.address, 2);
+        .withArgs(owner.address, firstToken.address, 2);
       expect(await deployedOGM.balanceOf(owner.address)).to.be.equal(2);
       expect(await deployedOGM.mintedOnPrivateSale(owner.address)).to.be.equal(
         2
       );
 
+      const [fetchedPrivateSalePrice] = await deployedOGM.allowedTokens(
+        firstToken.address
+      );
+      expect(await firstToken.balanceOf(deployedOGM.address)).to.be.equal(
+        fetchedPrivateSalePrice.mul(2)
+      );
+
       await expect(deployedOGM.privateMint(secondToken.address, 3, proof))
         .to.be.emit(deployedOGM, "Minted")
-        .withArgs(owner.address, 3);
+        .withArgs(owner.address, secondToken.address, 3);
+      const [fetchedPrivateSalePriceForSecondToken] =
+        await deployedOGM.allowedTokens(secondToken.address);
+      expect(await secondToken.balanceOf(deployedOGM.address)).to.be.equal(
+        fetchedPrivateSalePriceForSecondToken.mul(3)
+      );
       expect(await deployedOGM.balanceOf(owner.address)).to.be.equal(5);
       expect(await deployedOGM.mintedOnPrivateSale(owner.address)).to.be.equal(
         5
@@ -352,7 +396,7 @@ describe("OGM", async () => {
         deployedOGM.connect(addr1).mint(firstToken.address, 5)
       ).to.be.revertedWith("ERC20: transfer amount exceeds balance");
     });
-    it("Allows User To Mint If User is whitelisted", async () => {
+    it("Allows User To Mint", async () => {
       await setTokenPrice(privateSalePrice, publicSalePrice);
       await deployedOGM.changePublicSaleStatus(true);
       await firstToken.approve(
@@ -362,15 +406,18 @@ describe("OGM", async () => {
 
       await expect(deployedOGM.mint(firstToken.address, 5))
         .to.be.emit(deployedOGM, "Minted")
-        .withArgs(owner.address, 5);
+        .withArgs(owner.address, firstToken.address, 5);
       expect(await deployedOGM.balanceOf(owner.address)).to.be.equal(5);
     });
 
     it("Allow User To Mint With Multiple Token", async () => {
+      const privateSalePriceWithSecondToken = "100000000000000";
+      const publicSalePriceWithSecondToken = "100000000000000";
+
       await setTokenPrice(privateSalePrice, publicSalePrice);
       await setTokenPrice(
-        privateSalePrice,
-        publicSalePrice,
+        privateSalePriceWithSecondToken,
+        publicSalePriceWithSecondToken,
         secondToken.address
       );
       await deployedOGM.changePublicSaleStatus(true);
@@ -386,12 +433,12 @@ describe("OGM", async () => {
 
       await expect(deployedOGM.mint(firstToken.address, 2))
         .to.be.emit(deployedOGM, "Minted")
-        .withArgs(owner.address, 2);
+        .withArgs(owner.address, firstToken.address, 2);
       expect(await deployedOGM.balanceOf(owner.address)).to.be.equal(2);
 
       await expect(deployedOGM.mint(secondToken.address, 3))
         .to.be.emit(deployedOGM, "Minted")
-        .withArgs(owner.address, 3);
+        .withArgs(owner.address, secondToken.address, 3);
       expect(await deployedOGM.balanceOf(owner.address)).to.be.equal(5);
     });
 

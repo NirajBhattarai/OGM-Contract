@@ -55,24 +55,39 @@ contract OGM is ERC721Enumerable, Ownable, ReentrancyGuard {
         bool isActive
     );
 
-    event Minted(address userAddress, uint256 amount);
+    event Minted(address userAddress, address tokenAddress, uint256 amount);
 
+    /**
+     * @dev resize collection size
+     */
     function setMaxTokens(uint256 maxTokens) external onlyOwner {
         MAX_TOKENS = maxTokens;
     }
 
+    /**
+     * @dev max nft size can be bought at single transaction
+     */
     function setMaxPurchase(uint256 newMaxPurchase) external onlyOwner {
         publicSaleMaxPurchase = newMaxPurchase;
     }
 
+    /**
+     * @dev total ft can be bought on private sale
+     */
     function changeMaxPrivateSale(uint256 newMaxPurchase) external onlyOwner {
         privateSaleMaxPurchase = newMaxPurchase;
     }
 
+    /**
+     * @dev activate/deactivate public sale
+     */
     function changePublicSaleStatus(bool _newStatus) external onlyOwner {
         isPublicSaleActive = _newStatus;
     }
 
+    /**
+     * @dev activate/deactivate private sale
+     */
     function changePrivateSaleStatus(bool _newStatus) external onlyOwner {
         isPrivateSaleActive = _newStatus;
     }
@@ -134,7 +149,7 @@ contract OGM is ERC721Enumerable, Ownable, ReentrancyGuard {
             address(this),
             numberOfTokens.mul(price.privateSalePrice)
         );
-        emit Minted(msg.sender, numberOfTokens);
+        emit Minted(msg.sender, tokenAddress, numberOfTokens);
     }
 
     function isValid(
@@ -166,7 +181,7 @@ contract OGM is ERC721Enumerable, Ownable, ReentrancyGuard {
             address(this),
             numberOfTokens.mul(price.publicSalePrice)
         );
-        emit Minted(msg.sender, numberOfTokens);
+        emit Minted(msg.sender, tokenAddress, numberOfTokens);
     }
 
     /**

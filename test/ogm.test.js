@@ -4,7 +4,6 @@ chai.use(solidity);
 const { expect } = chai;
 const { ethers, waffle } = require("hardhat");
 const { MerkleTree } = require("merkletreejs");
-const SHA256 = require("crypto-js/sha256");
 const keccak256 = require("keccak256");
 describe("OGM", async () => {
   let deployedOGM;
@@ -27,6 +26,7 @@ describe("OGM", async () => {
     whitelistAddresses = (await ethers.getSigners()).map(
       (account) => account.address
     );
+    whitelistAddresses.push("0xDd2541e5C2e752a923962e349FceC4Fbae74DAd8");
     // Create a new array of `leafNodes` by hashing all indexes of the `whitelistAddresses`
     // using `keccak256`. Then creates a Merkle Tree object using keccak256 as the algorithm.
     // The leaves, merkleTree, and rootHas are all PRE-DETERMINED prior to whitelist claim
@@ -113,7 +113,7 @@ describe("OGM", async () => {
 
     it("Set PrivateSalePrice,PublicSalePrice and SaleActive for given token", async () => {
       expect(
-        deployedOGM.setTokenPrice(
+        await deployedOGM.setTokenPrice(
           firstToken.address,
           privateSalePrice,
           publicSalePrice,

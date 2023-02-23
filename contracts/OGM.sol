@@ -159,6 +159,20 @@ contract OGM is ERC721Enumerable, Ownable, ReentrancyGuard {
         return MerkleProof.verify(proof, root, leaf);
     }
 
+    function reserveToken(
+        uint256 numberOfTokens
+    ) external payable onlyOwner nonReentrant {
+        uint256 startTokenId = totalSupply();
+
+        require(
+            startTokenId + numberOfTokens <= MAX_TOKENS,
+            "Purchase would exceed max supply of OGM"
+        );
+        for (uint256 index = 1; index <= numberOfTokens; index++) {
+            _safeMint(msg.sender, startTokenId + index);
+        }
+    }
+
     function mint(
         address tokenAddress,
         uint256 numberOfTokens
